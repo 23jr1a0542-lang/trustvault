@@ -20,6 +20,8 @@ public class HomeController {
                     <h1>Welcome to TrustVault</h1>
                     <p>Secure Document Management System</p>
                     <p>You are logged in successfully.</p>
+
+                    <a href="/documents">Open Documents</a>
                 </body>
                 </html>
                 """;

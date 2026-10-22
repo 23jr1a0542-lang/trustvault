@@ -1,4 +1,3 @@
-
 package com.Trustvault.system.security;
 
 import org.springframework.context.annotation.Bean;
@@ -8,6 +7,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 
 @Configuration
 public class SecurityConfiguration {
@@ -26,12 +26,24 @@ public class SecurityConfiguration {
                 .csrfTokenRepository(
                     CookieCsrfTokenRepository.withHttpOnlyFalse()
                 )
+                .csrfTokenRequestHandler(
+                    new CsrfTokenRequestAttributeHandler()
+                )
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/error").permitAll()
+
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+
+                .requestMatchers("/documents/upload", "/documents/share", "/documents/*/delete")
+                .hasAnyRole("ADMIN", "OWNER")
+
                 .anyRequest().authenticated()
             )
-            .formLogin(form -> form.permitAll())
+            .formLogin(form -> form
+                .defaultSuccessUrl("/", true)
+                .permitAll()
+            )
             .logout(logout -> logout.permitAll());
 
         return http.build();
