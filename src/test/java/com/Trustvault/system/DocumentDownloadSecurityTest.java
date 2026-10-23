@@ -1,3 +1,4 @@
+
 package com.Trustvault.system;
 
 import java.io.ByteArrayInputStream;
@@ -7,7 +8,6 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
@@ -61,11 +61,17 @@ class DocumentDownloadSecurityTest {
         Useraccount admin = new Useraccount();
         admin.setUsername("adminUser");
         admin.setRole("ADMIN");
-        when(userRepository.findByUsername("adminUser")).thenReturn(Optional.of(admin));
-        when(documentRepository.findById(99L)).thenReturn(Optional.empty());
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                controller.downloadDocument(99L, principal));
+        when(userRepository.findByUsername("adminUser"))
+                .thenReturn(Optional.of(admin));
+
+        when(documentRepository.findWithOwnerById(99L))
+                .thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(
+                ResponseStatusException.class,
+                () -> controller.downloadDocument(99L, principal)
+        );
 
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     }
@@ -85,12 +91,20 @@ class DocumentDownloadSecurityTest {
         Document doc = new Document();
         doc.setOwner(owner);
 
-        when(userRepository.findByUsername("unauthorizedViewer")).thenReturn(Optional.of(viewer));
-        when(documentRepository.findById(1L)).thenReturn(Optional.of(doc));
-        when(permissionRepository.existsByDocumentIdAndViewerUsername(1L, "unauthorizedViewer")).thenReturn(false);
+        when(userRepository.findByUsername("unauthorizedViewer"))
+                .thenReturn(Optional.of(viewer));
 
-        assertThrows(AccessDeniedException.class, () ->
-                controller.downloadDocument(1L, principal));
+        when(documentRepository.findWithOwnerById(1L))
+                .thenReturn(Optional.of(doc));
+
+        when(permissionRepository.existsByDocumentIdAndViewerUsername(
+                1L, "unauthorizedViewer"))
+                .thenReturn(false);
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> controller.downloadDocument(1L, principal)
+        );
     }
 
     @Test
@@ -110,18 +124,33 @@ class DocumentDownloadSecurityTest {
         doc.setOwner(owner);
         doc.setStoragePath("trustvault-files/sample-uuid");
 
-        Resource mockResource = new InputStreamResource(new ByteArrayInputStream("data".getBytes()));
+        Resource mockResource = new InputStreamResource(
+                new ByteArrayInputStream("data".getBytes())
+        );
 
-        when(userRepository.findByUsername("validViewer")).thenReturn(Optional.of(viewer));
-        when(documentRepository.findById(1L)).thenReturn(Optional.of(doc));
-        when(permissionRepository.existsByDocumentIdAndViewerUsername(1L, "validViewer")).thenReturn(true);
-        when(storageService.loadAsResource("trustvault-files/sample-uuid")).thenReturn(mockResource);
+        when(userRepository.findByUsername("validViewer"))
+                .thenReturn(Optional.of(viewer));
 
-        ResponseEntity<Resource> response = controller.downloadDocument(1L, principal);
+        when(documentRepository.findWithOwnerById(1L))
+                .thenReturn(Optional.of(doc));
+
+        when(permissionRepository.existsByDocumentIdAndViewerUsername(
+                1L, "validViewer"))
+                .thenReturn(true);
+
+        when(storageService.loadAsResource("trustvault-files/sample-uuid"))
+                .thenReturn(mockResource);
+
+        ResponseEntity<Resource> response =
+                controller.downloadDocument(1L, principal);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getHeaders().getFirst("Content-Disposition").contains("contract.pdf"));
+        assertTrue(
+                response.getHeaders()
+                        .getFirst("Content-Disposition")
+                        .contains("contract.pdf")
+        );
     }
 
     @Test
@@ -137,73 +166,96 @@ class DocumentDownloadSecurityTest {
         doc.setOwner(owner);
         doc.setStoragePath("trustvault-files/sample-owner-uuid");
 
-        Resource mockResource = new InputStreamResource(new ByteArrayInputStream("spreadsheet".getBytes()));
+        Resource mockResource = new InputStreamResource(
+                new ByteArrayInputStream("spreadsheet".getBytes())
+        );
 
-        when(userRepository.findByUsername("docOwner")).thenReturn(Optional.of(owner));
-        when(documentRepository.findById(2L)).thenReturn(Optional.of(doc));
-        when(storageService.loadAsResource("trustvault-files/sample-owner-uuid")).thenReturn(mockResource);
+        when(userRepository.findByUsername("docOwner"))
+                .thenReturn(Optional.of(owner));
 
-        ResponseEntity<Resource> response = controller.downloadDocument(2L, principal);
+        when(documentRepository.findWithOwnerById(2L))
+                .thenReturn(Optional.of(doc));
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertTrue(response.getHeaders().getFirst("Content-Disposition").contains("owner_sheet.xlsx"));
-    }
+        when(storageService.loadAsResource(
+                "trustvault-files/sample-owner-uuid"))
+                .thenReturn(mockResource);
 
-    @Test
-    void download_admin_succeedsForAnyDocument() throws Exception {
-        Principal principal = createPrincipal("systemAdmin");
-
-        Useraccount admin = new Useraccount();
-        admin.setUsername("systemAdmin");
-        admin.setRole("ADMIN");
-
-        Useraccount owner = new Useraccount();
-        owner.setUsername("someOwner");
-        owner.setRole("OWNER");
-
-        Document doc = new Document();
-        doc.setFileName("any_doc.pdf");
-        doc.setOwner(owner);
-        doc.setStoragePath("trustvault-files/sample-any-uuid");
-
-        Resource mockResource = new InputStreamResource(new ByteArrayInputStream("pdfcontent".getBytes()));
-
-        when(userRepository.findByUsername("systemAdmin")).thenReturn(Optional.of(admin));
-        when(documentRepository.findById(3L)).thenReturn(Optional.of(doc));
-        when(storageService.loadAsResource("trustvault-files/sample-any-uuid")).thenReturn(mockResource);
-
-        ResponseEntity<Resource> response = controller.downloadDocument(3L, principal);
+        ResponseEntity<Resource> response =
+                controller.downloadDocument(2L, principal);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
+        assertTrue(
+                response.getHeaders()
+                        .getFirst("Content-Disposition")
+                        .contains("owner_sheet.xlsx")
+        );
     }
 
-    @Test
-    void download_missingFileOnDisk_throws404() throws Exception {
-        Principal principal = createPrincipal("systemAdmin");
 
-        Useraccount admin = new Useraccount();
-        admin.setUsername("systemAdmin");
-        admin.setRole("ADMIN");
+@Test
+void download_admin_succeedsForOwnDocument() throws Exception {
+    Principal principal = createPrincipal("systemAdmin");
 
-        Useraccount owner = new Useraccount();
-        owner.setUsername("someOwner");
+    Useraccount admin = new Useraccount();
+    admin.setUsername("systemAdmin");
+    admin.setRole("ADMIN");
 
-        Document doc = new Document();
-        doc.setFileName("deleted.pdf");
-        doc.setOwner(owner);
-        doc.setStoragePath("trustvault-files/deleted-uuid");
+    Document doc = new Document();
+    doc.setFileName("admin_doc.pdf");
+    doc.setOwner(admin);
+    doc.setStoragePath("trustvault-files/sample-admin-uuid");
 
-        when(userRepository.findByUsername("systemAdmin")).thenReturn(Optional.of(admin));
-        when(documentRepository.findById(4L)).thenReturn(Optional.of(doc));
-        when(storageService.loadAsResource("trustvault-files/deleted-uuid"))
-                .thenThrow(new FileNotFoundException("File missing on disk"));
+    Resource mockResource = new InputStreamResource(
+            new ByteArrayInputStream("pdfcontent".getBytes())
+    );
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
-                controller.downloadDocument(4L, principal));
+    when(userRepository.findByUsername("systemAdmin"))
+            .thenReturn(Optional.of(admin));
 
-        assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
-        assertEquals("Document file not found on server.", ex.getReason());
-    }
+    when(documentRepository.findWithOwnerById(3L))
+            .thenReturn(Optional.of(doc));
+
+    when(storageService.loadAsResource("trustvault-files/sample-admin-uuid"))
+            .thenReturn(mockResource);
+
+    ResponseEntity<Resource> response =
+            controller.downloadDocument(3L, principal);
+
+    assertEquals(HttpStatus.OK, response.getStatusCode());
+    assertNotNull(response.getBody());
+}
+
+
+
+@Test
+void download_missingFileOnDisk_throws404() throws Exception {
+    Principal principal = createPrincipal("systemAdmin");
+
+    Useraccount admin = new Useraccount();
+    admin.setUsername("systemAdmin");
+    admin.setRole("ADMIN");
+
+    Document doc = new Document();
+    doc.setFileName("deleted.pdf");
+    doc.setOwner(admin);
+    doc.setStoragePath("trustvault-files/deleted-uuid");
+
+    when(userRepository.findByUsername("systemAdmin"))
+            .thenReturn(Optional.of(admin));
+
+    when(documentRepository.findWithOwnerById(4L))
+            .thenReturn(Optional.of(doc));
+
+    when(storageService.loadAsResource("trustvault-files/deleted-uuid"))
+            .thenThrow(new FileNotFoundException("File missing on disk"));
+
+    ResponseStatusException ex = assertThrows(
+            ResponseStatusException.class,
+            () -> controller.downloadDocument(4L, principal)
+    );
+
+    assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
+    assertEquals("Document file not found on server.", ex.getReason());
+}
 }

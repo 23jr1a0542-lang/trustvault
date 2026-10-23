@@ -1,3 +1,4 @@
+
 package com.Trustvault.system.security;
 
 import org.springframework.context.annotation.Bean;
@@ -30,21 +31,37 @@ public class SecurityConfiguration {
                     new CsrfTokenRequestAttributeHandler()
                 )
             )
+
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/error").permitAll()
+                .requestMatchers(
+                    "/login",
+                    "/error",
+                    "/css/**",
+                    "/js/**",
+                    "/images/**",
+                    "/favicon.ico"
+                ).permitAll()
 
-                .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/admin/**")
+                .hasRole("ADMIN")
 
-                .requestMatchers("/documents/upload", "/documents/share", "/documents/*/delete")
-                .hasAnyRole("ADMIN", "OWNER")
+                .requestMatchers(
+                    "/documents/upload",
+                    "/documents/share",
+                    "/documents/*/delete"
+                ).hasAnyRole("ADMIN", "OWNER")
 
                 .anyRequest().authenticated()
             )
+
             .formLogin(form -> form
                 .defaultSuccessUrl("/", true)
                 .permitAll()
             )
-            .logout(logout -> logout.permitAll());
+
+            .logout(logout -> logout
+                .permitAll()
+            );
 
         return http.build();
     }

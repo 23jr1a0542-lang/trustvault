@@ -1,0 +1,877 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustVault - Document Dashboard</title>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6fb;
+            color: #1f2937;
+        }
+
+        .layout { display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: 230px;
+            flex-shrink: 0;
+            padding: 25px 18px;
+            background: #111b35;
+            color: white;
+        }
+
+        .brand { font-size: 25px; font-weight: bold; }
+        .brand-subtitle {
+            margin: 8px 0 30px;
+            color: #b8c4df;
+            font-size: 13px;
+        }
+
+        .nav-link {
+            display: block;
+            width: 100%;
+            margin: 7px 0;
+            padding: 12px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #dce4f7;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: #29395f;
+            color: white;
+        }
+
+        .main {
+            flex: 1;
+            min-width: 0;
+            padding: 30px;
+        }
+
+        .topbar, .panel-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .topbar { margin-bottom: 25px; }
+        h1 { margin: 0 0 8px; font-size: 28px; }
+        h2 { margin: 0; font-size: 19px; }
+        .muted { color: #667085; font-size: 14px; }
+
+        .account {
+            padding: 10px 14px;
+            border: 1px solid #e0e5ee;
+            border-radius: 9px;
+            background: white;
+            font-size: 14px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .stat-card, .panel {
+            border: 1px solid #e5e9f2;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 3px 12px rgba(20, 35, 70, .04);
+        }
+
+        .stat-card { padding: 20px; }
+        .stat-label { color: #667085; font-size: 14px; }
+        .stat-number { margin-top: 12px; font-size: 27px; font-weight: bold; }
+        .panel { margin-bottom: 22px; padding: 22px; }
+        .panel-heading { margin-bottom: 20px; }
+
+        button, input, select { font: inherit; }
+
+        .primary-button, .secondary-button {
+            padding: 11px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .primary-button {
+            border: 0;
+            background: #3459d5;
+            color: white;
+            font-weight: 600;
+        }
+
+        .primary-button:hover { background: #2647b5; }
+
+        .secondary-button {
+            border: 1px solid #d7deea;
+            background: white;
+            color: #344054;
+        }
+
+        button:disabled { opacity: .6; cursor: not-allowed; }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .field {
+            width: 100%;
+            min-width: 0;
+            padding: 11px 12px;
+            border: 1px solid #d5dce8;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .search-field { flex: 1; min-width: 180px; }
+        .category-filter { width: 180px; }
+
+        .table-wrap { width: 100%; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+
+        th, td {
+            padding: 14px 11px;
+            border-bottom: 1px solid #edf0f5;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+
+        th {
+            background: #f8f9fc;
+            color: #667085;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .category-tag {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 18px;
+            background: #edf2ff;
+            color: #3451a3;
+            font-size: 12px;
+        }
+
+        #emptyState {
+            padding: 25px 10px;
+            color: #667085;
+            text-align: center;
+        }
+
+        .upload-panel { display: none; }
+        .upload-panel.open { display: block; }
+
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .form-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+        .help-text {
+            margin-top: 7px;
+            color: #667085;
+            font-size: 12px;
+        }
+
+        .notice {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            overflow-wrap: anywhere;
+            font-size: 14px;
+        }
+
+        .message-error { color: #b42318; background: #fff1f0; }
+        .message-success { color: #176b4c; background: #ecfdf3; }
+        .message-info { color: #344a86; background: #eef4ff; }
+
+        @media (max-width: 800px) {
+            .layout { display: block; }
+            .sidebar { width: 100%; }
+            .main { padding: 17px; }
+            .stats { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="layout">
+
+    <aside class="sidebar">
+        <div class="brand">TrustVault</div>
+        <div class="brand-subtitle">Secure Document Management</div>
+
+        <button type="button" class="nav-link active" data-view="all">
+            My Documents
+        </button>
+
+        <button type="button" class="nav-link" data-view="shared">
+            Shared Documents
+        </button>
+        <a
+    href="/admin/users"
+    class="nav-link"
+    id="manageUsersLink"
+    style="display: none; text-decoration: none;">
+    Manage Users
+</a>
+    </aside>
+
+    <main class="main">
+
+        <header class="topbar">
+            <div>
+                <h1 id="dashboardTitle">Document Dashboard</h1>
+                <div class="muted" id="dashboardSubtitle">
+                    Loading your account...
+                </div>
+            </div>
+
+            <div class="account">
+                User: <strong id="username">Loading...</strong>
+                <span> | </span>
+                Role: <strong id="userRole">Loading...</strong>
+            </div>
+        </header>
+
+        <section class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Documents displayed</div>
+                <div class="stat-number" id="documentCount">0</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Categories</div>
+                <div class="stat-number" id="categoryCount">0</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Account role</div>
+                <div class="stat-number" id="roleSummary" style="font-size:21px">
+                    Loading...
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-heading">
+                <div>
+                    <h2 id="documentHeading">Documents</h2>
+                    <div class="muted" id="documentHelp">
+                        Your authorized documents appear here.
+                    </div>
+                </div>
+
+                <button
+                    type="button"
+                    class="primary-button"
+                    id="openUpload"
+                    style="display:none">
+                    + Upload Document
+                </button>
+            </div>
+
+            <div class="filters">
+                <input
+                    class="field search-field"
+                    id="searchInput"
+                    type="search"
+                    placeholder="Search documents..."
+                    aria-label="Search documents">
+
+                <select
+                    class="field category-filter"
+                    id="categoryFilter"
+                    aria-label="Filter by category">
+                    <option value="">All categories</option>
+                </select>
+
+                <button type="button" class="secondary-button" id="clearFilters">
+                    Clear
+                </button>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Document</th>
+                        <th>Category</th>
+                        <th>Uploaded</th>
+                        <th>Status</th>
+                    </tr>
+                    </thead>
+                    <tbody id="documentTable"></tbody>
+                </table>
+            </div>
+
+            <div id="emptyState" style="display:none"></div>
+        </section>
+
+        <section class="panel" id="uploadPanel" style="display:none">
+            <div class="panel-heading">
+                <div>
+                    <h2>Upload a Document</h2>
+                    <div class="muted">Choose a file to upload.</div>
+                </div>
+            </div>
+
+            <form
+                id="previewUploadForm"
+                action="/documents/upload"
+                method="post"
+                enctype="multipart/form-data">
+
+                <input type="hidden" id="csrfToken" name="_csrf" value="">
+                <input type="hidden" id="categoryInput" name="category" value="">
+
+                <div class="form-group">
+                    <label for="fileInput">Choose file</label>
+                    <input
+                        class="field"
+                        id="fileInput"
+                        name="file"
+                        type="file"
+                        required>
+                    <div class="help-text">Maximum file size: 5 MB.</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="detectedFormat">Detected format</label>
+                    <input
+                        class="field"
+                        id="detectedFormat"
+                        type="text"
+                        readonly
+                        placeholder="Choose a file first">
+                    <div class="help-text" id="formatInfo"></div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="primary-button" id="uploadButton">
+                        Upload Document
+                    </button>
+                    <button type="button" class="secondary-button" id="cancelUpload">
+                        Cancel
+                    </button>
+                </div>
+
+                <div
+                    id="uploadMessage"
+                    class="notice"
+                    role="status"
+                    aria-live="polite"
+                    style="display:none">
+                </div>
+            </form>
+        </section>
+
+    </main>
+</div>
+
+<script>
+"use strict";
+
+const searchInput = document.getElementById("searchInput");
+const categoryFilter = document.getElementById("categoryFilter");
+const documentTable = document.getElementById("documentTable");
+const emptyState = document.getElementById("emptyState");
+const uploadPanel = document.getElementById("uploadPanel");
+const uploadButton = document.getElementById("openUpload");
+const uploadForm = document.getElementById("previewUploadForm");
+const fileInput = document.getElementById("fileInput");
+const uploadMessage = document.getElementById("uploadMessage");
+const detectedFormat = document.getElementById("detectedFormat");
+const formatInfo = document.getElementById("formatInfo");
+const categoryInput = document.getElementById("categoryInput");
+
+let currentUser = null;
+let documents = [];
+let activeView = "all";
+let loadingDocuments = false;
+
+function showMessage(message, type = "info") {
+    uploadMessage.textContent = message;
+    uploadMessage.className = "notice message-" + type;
+    uploadMessage.style.display = message ? "block" : "none";
+}
+
+function getRoleName(user) {
+    if (user.isAdmin) return "Admin";
+    if (user.isOwner) return "Owner";
+    if (user.isViewer) return "Viewer";
+    return "Unknown";
+}
+
+function canUpload() {
+    return Boolean(
+        currentUser &&
+        (currentUser.isOwner === true || currentUser.isAdmin === true)
+    );
+}
+
+async function loadCurrentUser() {
+    try {
+        const response = await fetch("/api/me", {
+            credentials: "same-origin",
+            headers: { "Accept": "application/json" },
+            cache: "no-store"
+        });
+
+        if (response.status === 401 || response.status === 403) {
+            window.location.assign("/login");
+            return false;
+        }
+
+        if (!response.ok) {
+            throw new Error("Could not identify the logged-in user.");
+        }
+
+        currentUser = await response.json();
+
+        document.getElementById("username").textContent =
+            currentUser.username || "Unknown";
+
+        const role = getRoleName(currentUser);
+        document.getElementById("userRole").textContent = role;
+        document.getElementById("roleSummary").textContent = role;
+
+        if (!currentUser.isAdmin &&
+            !currentUser.isOwner &&
+            !currentUser.isViewer) {
+            throw new Error("Your account does not have a recognized role.");
+        }
+
+        if (currentUser.isAdmin) {
+            document.getElementById("dashboardTitle").textContent =
+                "Admin Dashboard";
+            document.getElementById("dashboardSubtitle").textContent =
+                "Manage Viewer accounts and authorized administration tasks.";
+            document.getElementById("documentHeading").textContent =
+                "Authorized Documents";
+            document.getElementById("documentHelp").textContent =
+                "Only documents your account is authorized to access should appear.";
+        } else if (currentUser.isOwner) {
+            document.getElementById("dashboardTitle").textContent =
+                "Owner Dashboard";
+            document.getElementById("dashboardSubtitle").textContent =
+                "Upload and manage your own documents.";
+            document.getElementById("documentHeading").textContent =
+                "My Documents";
+            document.getElementById("documentHelp").textContent =
+                "Manage your own documents and their sharing.";
+        } else {
+            document.getElementById("dashboardTitle").textContent =
+                "Viewer Dashboard";
+            document.getElementById("dashboardSubtitle").textContent =
+                "View documents that have been shared with you.";
+            document.getElementById("documentHeading").textContent =
+                "Shared With Me";
+            document.getElementById("documentHelp").textContent =
+                "You have read-only access. Uploading is unavailable.";
+        }
+
+        uploadButton.style.display = canUpload() ? "inline-block" : "none";
+        const manageUsersLink = document.getElementById("manageUsersLink");
+
+        manageUsersLink.style.display =
+            currentUser.isAdmin === true ? "block" : "none";
+
+        if (!canUpload()) {
+            uploadPanel.style.display = "none";
+            uploadPanel.classList.remove("open");
+        }
+
+        return true;
+
+    } catch (error) {
+        currentUser = null;
+        uploadButton.style.display = "none";
+        uploadPanel.style.display = "none";
+
+        document.getElementById("dashboardSubtitle").textContent =
+            "Unable to verify your account.";
+
+        console.error("User role error:", error);
+        emptyState.textContent =
+            "Could not verify your role. Refresh the page or sign in again.";
+        emptyState.style.display = "block";
+
+        return false;
+    }
+}
+
+function detectFormat(fileName) {
+    const extension = fileName.includes(".")
+        ? fileName.split(".").pop().toLowerCase()
+        : "";
+
+    const formats = {
+        pdf: "PDF",
+        doc: "Word Document",
+        docx: "Word Document",
+        xls: "Excel Spreadsheet",
+        xlsx: "Excel Spreadsheet",
+        csv: "Excel Spreadsheet",
+        ppt: "PowerPoint",
+        pptx: "PowerPoint",
+        jpg: "Image",
+        jpeg: "Image",
+        png: "Image",
+        gif: "Image",
+        webp: "Image",
+        txt: "Text Document"
+    };
+
+    return formats[extension] || "Other";
+}
+
+function getDocumentName(doc) {
+    return doc.fileName || doc.name || "Unnamed document";
+}
+
+function getDocumentDate(doc) {
+    return doc.uploadedAt || doc.uploaded || doc.createdAt ||
+           doc.uploadDate || doc.createdDate || null;
+}
+
+function formatDate(value) {
+    if (!value) return "—";
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+        ? String(value)
+        : date.toLocaleString();
+}
+
+function renderCategories() {
+    const categories = [...new Set(
+        documents.map(doc => doc.category).filter(Boolean)
+    )].sort();
+
+    const previous = categoryFilter.value;
+    categoryFilter.replaceChildren();
+
+    const allOption = document.createElement("option");
+    allOption.value = "";
+    allOption.textContent = "All categories";
+    categoryFilter.appendChild(allOption);
+
+    categories.forEach(category => {
+        const option = document.createElement("option");
+        option.value = category;
+        option.textContent = category;
+        categoryFilter.appendChild(option);
+    });
+
+    if (categories.includes(previous)) {
+        categoryFilter.value = previous;
+    }
+
+    document.getElementById("categoryCount").textContent =
+        categories.length;
+}
+
+function renderDocuments() {
+    const query = searchInput.value.trim().toLowerCase();
+    const category = categoryFilter.value;
+
+    const filtered = documents.filter(doc => {
+        const name = getDocumentName(doc).toLowerCase();
+        const format = String(doc.category || "").toLowerCase();
+
+        const matchesSearch = name.includes(query) || format.includes(query);
+        const matchesCategory = !category || doc.category === category;
+
+        const status = String(doc.status || "").toLowerCase();
+        const matchesView = activeView !== "shared" || status === "shared";
+
+        return matchesSearch && matchesCategory && matchesView;
+    });
+
+    documentTable.replaceChildren();
+
+    filtered.forEach(doc => {
+        const row = document.createElement("tr");
+
+        const nameCell = document.createElement("td");
+        const documentName = getDocumentName(doc);
+
+        const hasDuplicateName = documents.some(item =>
+            item.id !== doc.id &&
+            getDocumentName(item).toLowerCase() === documentName.toLowerCase()
+        );
+
+        nameCell.textContent = hasDuplicateName
+            ? `${documentName} (ID: ${doc.id})`
+            : documentName;
+
+        const categoryCell = document.createElement("td");
+        const tag = document.createElement("span");
+        tag.className = "category-tag";
+        tag.textContent = doc.category || "Other";
+        categoryCell.appendChild(tag);
+
+        const dateCell = document.createElement("td");
+        dateCell.textContent = formatDate(getDocumentDate(doc));
+
+        const statusCell = document.createElement("td");
+        statusCell.textContent = doc.status || "Private";
+
+        row.append(nameCell, categoryCell, dateCell, statusCell);
+        documentTable.appendChild(row);
+    });
+
+    document.getElementById("documentCount").textContent = filtered.length;
+
+    document.querySelector(".table-wrap").style.display =
+        filtered.length ? "block" : "none";
+
+    emptyState.style.display = filtered.length ? "none" : "block";
+    emptyState.textContent = documents.length
+        ? "No documents match your search or filter."
+        : "No authorized documents are available.";
+}
+
+async function loadDocuments() {
+    if (loadingDocuments) return;
+
+    loadingDocuments = true;
+
+    try {
+        const response = await fetch("/api/documents", {
+            credentials: "same-origin",
+            headers: { "Accept": "application/json" },
+            cache: "no-store"
+        });
+
+        if (response.status === 401) {
+            window.location.assign("/login");
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error("Document request failed with HTTP " + response.status);
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+            throw new Error("Unexpected document API response.");
+        }
+        documents = data;
+
+        console.table(data.map(doc => ({
+            id: doc.id,
+            name: getDocumentName(doc),
+            ownerId: doc.ownerId ?? doc.owner_id,
+            category: doc.category
+        })));
+        console.log("TrustVault document data:", data);
+        renderCategories();
+        renderDocuments();
+    } catch (error) {
+        documents = [];
+        renderCategories();
+        renderDocuments();
+
+        emptyState.textContent =
+            "Could not load documents: " + error.message;
+        emptyState.style.display = "block";
+        console.error("Document loading error:", error);
+
+    } finally {
+        loadingDocuments = false;
+    }
+}
+
+fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+
+    if (!file) {
+        detectedFormat.value = "";
+        categoryInput.value = "";
+        formatInfo.textContent = "Choose a file to detect its format.";
+        return;
+    }
+
+    const format = detectFormat(file.name);
+    detectedFormat.value = format;
+    categoryInput.value = format;
+
+    formatInfo.textContent =
+        "Selected: " + file.name +
+        " | Format: " + format +
+        " | Size: " + (file.size / 1024).toFixed(1) + " KB";
+
+    showMessage("");
+});
+
+uploadButton.addEventListener("click", () => {
+    if (!canUpload()) {
+        showMessage("Your account cannot upload documents.", "error");
+        return;
+    }
+
+    uploadPanel.style.display = "block";
+    uploadPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+document.getElementById("cancelUpload").addEventListener("click", () => {
+    uploadPanel.style.display = "none";
+    uploadForm.reset();
+    detectedFormat.value = "";
+    categoryInput.value = "";
+    formatInfo.textContent = "";
+    showMessage("");
+});
+
+document.getElementById("clearFilters").addEventListener("click", () => {
+    searchInput.value = "";
+    categoryFilter.value = "";
+    renderDocuments();
+});
+
+searchInput.addEventListener("input", renderDocuments);
+categoryFilter.addEventListener("change", renderDocuments);
+
+document.querySelectorAll(".nav-link").forEach(button => {
+    button.addEventListener("click", () => {
+        document.querySelectorAll(".nav-link").forEach(item => {
+            item.classList.remove("active");
+        });
+
+        button.classList.add("active");
+        activeView = button.dataset.view;
+        renderDocuments();
+    });
+});
+
+uploadForm.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    if (!canUpload()) {
+        showMessage("Your account is not permitted to upload.", "error");
+        return;
+    }
+
+    const file = fileInput.files[0];
+
+    if (!file) {
+        showMessage("Please choose a file.", "error");
+        return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+        showMessage("The file must be 5 MB or smaller.", "error");
+        return;
+    }
+
+    const roles = currentUser.roles || [];
+    const roleAllowed =
+        (currentUser.isAdmin && roles.includes("ROLE_ADMIN")) ||
+        (currentUser.isOwner && roles.includes("ROLE_OWNER"));
+
+    if (!roleAllowed) {
+        showMessage("Your account role does not permit uploading.", "error");
+        return;
+    }
+
+    const button = document.getElementById("uploadButton");
+    button.disabled = true;
+
+    try {
+        showMessage("Getting security token...");
+
+        const csrfResponse = await fetch("/csrf", {
+            credentials: "same-origin",
+            headers: { "Accept": "application/json" },
+            cache: "no-store"
+        });
+
+        if (!csrfResponse.ok) {
+            throw new Error("Could not obtain the CSRF token.");
+        }
+
+        const csrfData = await csrfResponse.json();
+
+        if (!csrfData.token) {
+            throw new Error("CSRF token was missing.");
+        }
+
+        document.getElementById("csrfToken").value = csrfData.token;
+        categoryInput.value = detectFormat(file.name);
+
+        showMessage("Uploading document...");
+
+        const response = await fetch("/documents/upload", {
+            method: "POST",
+            body: new FormData(uploadForm),
+            credentials: "same-origin"
+        });
+
+        if (!response.ok) {
+            throw new Error(
+                response.status === 403
+                    ? "Upload denied. Check permissions and CSRF token."
+                    : "Upload failed with HTTP " + response.status
+            );
+        }
+
+        if (response.redirected &&
+            response.url.includes("/login")) {
+            window.location.assign(response.url);
+            return;
+        }
+
+        uploadForm.reset();
+        detectedFormat.value = "";
+        categoryInput.value = "";
+        formatInfo.textContent = "";
+
+        await loadDocuments();
+
+        showMessage(
+            "Upload request completed. Check the document list for your file.",
+            "success"
+        );
+
+    } catch (error) {
+        showMessage(error.message || "Upload failed.", "error");
+        console.error("Upload error:", error);
+
+    } finally {
+        button.disabled = false;
+    }
+});
+
+(async function initializeDashboard() {
+    const verified = await loadCurrentUser();
+
+    if (verified) {
+        await loadDocuments();
+    }
+})();
+</script>
+</body>
+</html>
