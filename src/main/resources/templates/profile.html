@@ -1,0 +1,239 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - TrustVault</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #e8efff, #f5f7fb);
+            color: #263247;
+        }
+
+        header {
+            background: #172b4d;
+            color: white;
+            padding: 18px 7%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .brand {
+            font-size: 23px;
+            font-weight: bold;
+        }
+
+        header a {
+            color: white;
+            text-decoration: none;
+            margin-left: 18px;
+            font-size: 14px;
+        }
+
+        header a:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 650px;
+            margin: 55px auto;
+        }
+
+        .profile-card {
+            background: white;
+            padding: 35px;
+            border-radius: 14px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #172b4d;
+        }
+
+        .subtitle {
+            color: #718096;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+
+        .detail {
+            margin-bottom: 22px;
+        }
+
+        .detail label,
+        .email-section label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .value {
+            background: #f3f6fb;
+            padding: 13px;
+            border-radius: 7px;
+            color: #34445e;
+            overflow-wrap: anywhere;
+        }
+
+        input[type="email"] {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ccd5e2;
+            border-radius: 7px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        input[type="email"]:focus {
+            border-color: #3867d6;
+            box-shadow: 0 0 0 3px rgba(56, 103, 214, 0.12);
+        }
+
+        button {
+            margin-top: 18px;
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 7px;
+            background: #2457c5;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #19449e;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 7px;
+            margin-bottom: 18px;
+            font-size: 14px;
+        }
+
+        .success {
+            background: #e5f8ed;
+            color: #176b3a;
+        }
+
+        .error {
+            background: #fdeaea;
+            color: #a32626;
+        }
+
+        .note {
+            margin-top: 18px;
+            font-size: 13px;
+            color: #718096;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 500px) {
+            .container {
+                margin: 25px auto;
+            }
+
+            .profile-card {
+                padding: 23px;
+            }
+
+            header {
+                padding: 16px 5%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="brand">TrustVault</div>
+
+    <nav>
+        <a th:href="@{/}">Dashboard</a>
+        <a th:href="@{/profile}">My Profile</a>
+    </nav>
+</header>
+
+<main class="container">
+
+    <section class="profile-card">
+
+        <h1>My Profile</h1>
+
+        <p class="subtitle">
+            View your account information and manage your email address.
+        </p>
+
+        <div th:if="${success}"
+             class="message success"
+             th:text="${success}">
+        </div>
+
+        <div th:if="${error}"
+             class="message error"
+             th:text="${error}">
+        </div>
+
+        <div class="detail">
+            <label>Username</label>
+            <div class="value" th:text="${username}"></div>
+        </div>
+
+        <div class="detail">
+            <label>Account Role</label>
+            <div class="value" th:text="${role}"></div>
+        </div>
+
+        <form th:action="@{/profile/update-email}" method="post">
+
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+
+            <div class="email-section">
+                <label for="email">Email Address</label>
+
+                <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    th:value="${email}"
+                    maxlength="254"
+                    placeholder="Enter your email address"
+                    autocomplete="email"
+                    required>
+            </div>
+
+            <button type="submit">Update Email Address</button>
+
+        </form>
+
+        <p class="note">
+            Your email address is currently not verified.
+            Email verification will be added separately before
+            enabling password recovery.
+        </p>
+
+    </section>
+
+</main>
+
+</body>
+</html>

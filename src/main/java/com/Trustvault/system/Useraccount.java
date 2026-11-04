@@ -17,6 +17,11 @@ public class Useraccount {
     @Column(nullable = false, length = 255)
     private String passwordHash;
 
+    // New field: Email address for account recovery
+    // Nullable temporarily to preserve existing accounts.
+    @Column(unique = true, length = 254)
+    private String email;
+
     @Column(nullable = false, length = 20)
     private String role;
 
@@ -44,6 +49,14 @@ public class Useraccount {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getRole() {

@@ -14,18 +14,22 @@ import org.springframework.security.web.csrf.CsrfToken;
 
 import com.Trustvault.system.Useraccount;
 import com.Trustvault.system.repository.Useraccountrepository;
+import com.Trustvault.system.service.AuditLogService;
 
 @Controller
 public class OwnerController {
 
     private final Useraccountrepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuditLogService auditLogService;
 
     public OwnerController(
             Useraccountrepository userRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.auditLogService = auditLogService;
     }
 
     @GetMapping("/admin/create-owner")
@@ -116,6 +120,13 @@ public class OwnerController {
         owner.setEnabled(true);
 
         userRepository.save(owner);
+
+        auditLogService.log(
+                admin.getUsername(),
+                "USER_CREATED",
+                owner.getUsername(),
+                "Created Owner account",
+                "SUCCESS");
 
         return """
                 <h2>Owner account created successfully!</h2>

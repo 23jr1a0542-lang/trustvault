@@ -1,0 +1,319 @@
+
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrustVault | Login</title>
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+            background-color: #0b0f19;
+            background-image: radial-gradient(
+                circle at 50% 0%,
+                rgba(0, 240, 255, 0.13) 0%,
+                #0b0f19 60%
+            );
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 430px;
+            padding: 36px 32px;
+            text-align: center;
+            color: #fff;
+            background: rgba(13, 22, 38, 0.85);
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6),
+                        inset 0 0 20px rgba(0, 240, 255, 0.04);
+            backdrop-filter: blur(12px);
+        }
+
+        .logo {
+            width: 62px;
+            height: 62px;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(0, 240, 255, 0.35);
+            border-radius: 17px;
+            background: rgba(0, 240, 255, 0.07);
+        }
+
+        .logo i {
+            font-size: 30px;
+            color: #00f0ff;
+        }
+
+        .brand {
+            font-size: 25px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .brand span {
+            color: #00f0ff;
+        }
+
+        .subtitle {
+            margin-top: 7px;
+            margin-bottom: 28px;
+            color: #8a9bb8;
+            font-size: 13px;
+        }
+
+        h2 {
+            margin-bottom: 9px;
+            color: #00f0ff;
+            font-size: 25px;
+        }
+
+        .description {
+            margin-bottom: 25px;
+            color: #a0aec0;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .message {
+            margin-bottom: 17px;
+            padding: 11px;
+            border-radius: 10px;
+            font-size: 13px;
+            line-height: 1.5;
+            overflow-wrap: anywhere;
+        }
+
+        .error {
+            color: #fecaca;
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        .success {
+            color: #d7fbff;
+            background: rgba(0, 240, 255, 0.07);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 18px;
+        }
+
+        .input-group > i {
+            position: absolute;
+            top: 50%;
+            left: 17px;
+            transform: translateY(-50%);
+            color: #00f0ff;
+            pointer-events: none;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 45px 14px 46px;
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 30px;
+            outline: none;
+            background: rgba(0, 0, 0, 0.25);
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .input-group input:focus {
+            border-color: #00f0ff;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.18);
+        }
+
+        .input-group input::placeholder {
+            color: #8a9bb8;
+        }
+
+        .toggle-password {
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            padding: 5px;
+            border: none;
+            background: transparent;
+            color: #00f0ff;
+            cursor: pointer;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 30px;
+            background: linear-gradient(135deg, #00f0ff, #0077ff);
+            color: #0b0f19;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 240, 255, 0.22);
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        .login-btn:hover {
+            opacity: 0.9;
+        }
+
+        .login-btn:active {
+            transform: scale(0.98);
+        }
+
+        .register-link {
+            margin-top: 23px;
+            color: #a0aec0;
+            font-size: 13px;
+        }
+
+        .register-link a {
+            color: #00f0ff;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+
+        .security-note {
+            margin-top: 23px;
+            color: #64748b;
+            font-size: 12px;
+        }
+
+        .security-note i {
+            margin-right: 5px;
+            color: #00f0ff;
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<main class="login-card">
+
+    <div class="logo">
+        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+    </div>
+
+    <div class="brand">Trust<span>Vault</span></div>
+    <p class="subtitle">Secure Document Management</p>
+
+    <h2>Welcome Back</h2>
+    <p class="description">
+        Sign in to securely access your documents.
+    </p>
+
+    <div class="message error"
+         th:if="${param.error}"
+         role="alert">
+        Invalid username or password. Please try again.
+    </div>
+
+    <div class="message success"
+         th:if="${param.logout}"
+         role="status">
+        You have successfully logged out.
+    </div>
+
+    <form th:action="@{/login}" method="post">
+
+        <div class="input-group">
+            <i class="fa-solid fa-user" aria-hidden="true"></i>
+            <input type="text"
+                   id="username"
+                   name="username"
+                   placeholder="Enter your username"
+                   autocomplete="username"
+                   required
+                   autofocus>
+        </div>
+
+        <div class="input-group">
+            <i class="fa-solid fa-lock" aria-hidden="true"></i>
+            <input type="password"
+                   id="password"
+                   name="password"
+                   placeholder="Enter your password"
+                   autocomplete="current-password"
+                   required>
+
+            <button type="button"
+                    class="toggle-password"
+                    aria-label="Show password">
+                <i class="fa-solid fa-eye" aria-hidden="true"></i>
+            </button>
+        </div>
+
+        <input type="hidden"
+               th:name="${_csrf.parameterName}"
+               th:value="${_csrf.token}">
+
+        <button type="submit" class="login-btn">
+            <i class="fa-solid fa-right-to-bracket"
+               aria-hidden="true"></i>
+            &nbsp; Login
+        </button>
+    </form>
+
+    <p class="register-link">
+        Don't have an account?
+        <a th:href="@{/register}">Create Account</a>
+    </p>
+
+    <div class="security-note">
+        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+        Your account is protected by TrustVault.
+    </div>
+
+</main>
+
+<script>
+    const toggleButton = document.querySelector('.toggle-password');
+
+    toggleButton.addEventListener('click', function () {
+        const passwordInput = document.getElementById('password');
+        const icon = this.querySelector('i');
+        const showPassword = passwordInput.type === 'password';
+
+        passwordInput.type = showPassword ? 'text' : 'password';
+
+        icon.classList.toggle('fa-eye', !showPassword);
+        icon.classList.toggle('fa-eye-slash', showPassword);
+
+        this.setAttribute(
+            'aria-label',
+            showPassword ? 'Hide password' : 'Show password'
+        );
+    });
+</script>
+
+</body>
+</html>

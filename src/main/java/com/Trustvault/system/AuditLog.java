@@ -33,6 +33,13 @@ public class AuditLog {
     @Column(nullable = false)
     private LocalDateTime timestamp;
 
+    // Nullable additions: existing rows simply keep NULL here.
+    @Column(name = "actor_role", length = 30)
+    private String actorRole;
+
+    @Column(length = 255)
+    private String target;
+
     public AuditLog() {
     }
 
@@ -70,6 +77,22 @@ public class AuditLog {
 
     public void setResult(String result) {
         this.result = result;
+    }
+
+    public String getActorRole() {
+        return actorRole;
+    }
+
+    public void setActorRole(String actorRole) {
+        this.actorRole = actorRole;
+    }
+
+    public String getTarget() {
+        return target;
+    }
+
+    public void setTarget(String target) {
+        this.target = target;
     }
 
     public LocalDateTime getTimestamp() {

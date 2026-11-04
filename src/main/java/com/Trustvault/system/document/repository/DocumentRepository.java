@@ -17,6 +17,7 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
 
     List<Document> findByOwnerUsername(String username);
 
+    @EntityGraph(attributePaths = {"owner"})
     List<Document> findByOwnerUsernameOrderByIdDesc(String username);
 
     boolean existsByFileNameIgnoreCaseAndOwnerUsername(
@@ -24,4 +25,12 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
 
     @EntityGraph(attributePaths = {"owner"})
     Optional<Document> findWithOwnerById(Long id);
+
+    // Every document with its owner loaded (Admin oversight).
+    @EntityGraph(attributePaths = {"owner"})
+    List<Document> findAllByOrderByIdDesc();
+
+    // Latest uploads across all owners (Admin overview, metadata only).
+    @EntityGraph(attributePaths = {"owner"})
+    List<Document> findTop10ByOrderByUploadedAtDescIdDesc();
 }

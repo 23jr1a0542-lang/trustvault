@@ -18,6 +18,7 @@ import com.Trustvault.system.document.Documentpermission;
 import com.Trustvault.system.document.repository.DocumentRepository;
 import com.Trustvault.system.document.repository.DocumentPermissionRepository;
 import com.Trustvault.system.repository.Useraccountrepository;
+import com.Trustvault.system.service.AuditLogService;
 
 @Controller
 public class DocumentPermissionController {
@@ -25,14 +26,17 @@ public class DocumentPermissionController {
     private final DocumentRepository documentRepository;
     private final DocumentPermissionRepository permissionRepository;
     private final Useraccountrepository userRepository;
+    private final AuditLogService auditLogService;
 
     public DocumentPermissionController(
             DocumentRepository documentRepository,
             DocumentPermissionRepository permissionRepository,
-            Useraccountrepository userRepository) {
+            Useraccountrepository userRepository,
+            AuditLogService auditLogService) {
         this.documentRepository = documentRepository;
         this.permissionRepository = permissionRepository;
         this.userRepository = userRepository;
+        this.auditLogService = auditLogService;
     }
 
     @GetMapping("/documents/share")
@@ -131,6 +135,12 @@ public class DocumentPermissionController {
         if (isOwner && (document.getOwner() == null
                 || !document.getOwner().getUsername()
                         .equals(currentUser.getUsername()))) {
+            auditLogService.log(
+                    currentUser.getUsername(),
+                    "DOCUMENT_SHARE",
+                    "document id=" + documentId,
+                    "Share denied: document belongs to another owner",
+                    "DENIED");
             throw new AccessDeniedException(
                     "You can only share your own documents.");
         }
@@ -169,6 +179,13 @@ public class DocumentPermissionController {
         permission.setViewer(viewer);
 
         permissionRepository.save(permission);
+
+        auditLogService.log(
+                currentUser.getUsername(),
+                "DOCUMENT_SHARE",
+                "document id=" + documentId,
+                "Shared with viewer: " + viewer.getUsername(),
+                "SUCCESS");
 
         return """
                 <!DOCTYPE html>

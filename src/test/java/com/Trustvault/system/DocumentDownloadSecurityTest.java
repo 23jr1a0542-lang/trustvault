@@ -21,8 +21,12 @@ import com.Trustvault.system.document.controller.DocumentController;
 import com.Trustvault.system.document.repository.DocumentPermissionRepository;
 import com.Trustvault.system.document.repository.DocumentRepository;
 import com.Trustvault.system.repository.Useraccountrepository;
+import com.Trustvault.system.service.AuditLogService;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class DocumentDownloadSecurityTest {
@@ -32,6 +36,7 @@ class DocumentDownloadSecurityTest {
     private Useraccountrepository userRepository;
     private DocumentPermissionRepository permissionRepository;
     private DocumentController controller;
+    private AuditLogService auditLogService;
 
     @BeforeEach
     void setUp() {
@@ -39,12 +44,14 @@ class DocumentDownloadSecurityTest {
         documentRepository = mock(DocumentRepository.class);
         userRepository = mock(Useraccountrepository.class);
         permissionRepository = mock(DocumentPermissionRepository.class);
+        auditLogService = mock(AuditLogService.class);
 
         controller = new DocumentController(
                 storageService,
                 documentRepository,
                 userRepository,
-                permissionRepository
+                permissionRepository,
+                auditLogService
         );
     }
 
@@ -105,6 +112,16 @@ class DocumentDownloadSecurityTest {
                 AccessDeniedException.class,
                 () -> controller.downloadDocument(1L, principal)
         );
+
+        verify(auditLogService).log(
+                eq("unauthorizedViewer"),
+                eq("DOCUMENT_DOWNLOAD"),
+                anyString(),
+                anyString(),
+                eq("DENIED"));
+        verify(auditLogService, never()).log(
+                anyString(), anyString(), anyString(),
+                anyString(), eq("SUCCESS"));
     }
 
     @Test
@@ -151,6 +168,13 @@ class DocumentDownloadSecurityTest {
                         .getFirst("Content-Disposition")
                         .contains("contract.pdf")
         );
+
+        verify(auditLogService).log(
+                eq("validViewer"),
+                eq("DOCUMENT_DOWNLOAD"),
+                contains("contract.pdf"),
+                anyString(),
+                eq("SUCCESS"));
     }
 
     @Test
@@ -190,6 +214,13 @@ class DocumentDownloadSecurityTest {
                         .getFirst("Content-Disposition")
                         .contains("owner_sheet.xlsx")
         );
+
+        verify(auditLogService, times(1)).log(
+                eq("docOwner"),
+                eq("DOCUMENT_DOWNLOAD"),
+                contains("owner_sheet.xlsx"),
+                anyString(),
+                eq("SUCCESS"));
     }
 
 
@@ -257,5 +288,12 @@ void download_missingFileOnDisk_throws404() throws Exception {
 
     assertEquals(HttpStatus.NOT_FOUND, ex.getStatusCode());
     assertEquals("Document file not found on server.", ex.getReason());
+
+    verify(auditLogService).log(
+            eq("systemAdmin"),
+            eq("DOCUMENT_DOWNLOAD"),
+            contains("deleted.pdf"),
+            anyString(),
+            eq("FAILURE"));
 }
 }

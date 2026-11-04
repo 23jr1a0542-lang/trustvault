@@ -27,6 +27,7 @@
         }
 
         .brand { font-size: 25px; font-weight: bold; }
+
         .brand-subtitle {
             margin: 8px 0 30px;
             color: #b8c4df;
@@ -44,6 +45,7 @@
             color: #dce4f7;
             text-align: left;
             cursor: pointer;
+            text-decoration: none;
         }
 
         .nav-link:hover, .nav-link.active {
@@ -66,8 +68,10 @@
         }
 
         .topbar { margin-bottom: 25px; }
+
         h1 { margin: 0 0 8px; font-size: 28px; }
         h2 { margin: 0; font-size: 19px; }
+
         .muted { color: #667085; font-size: 14px; }
 
         .account {
@@ -94,7 +98,13 @@
 
         .stat-card { padding: 20px; }
         .stat-label { color: #667085; font-size: 14px; }
-        .stat-number { margin-top: 12px; font-size: 27px; font-weight: bold; }
+
+        .stat-number {
+            margin-top: 12px;
+            font-size: 27px;
+            font-weight: bold;
+        }
+
         .panel { margin-bottom: 22px; padding: 22px; }
         .panel-heading { margin-bottom: 20px; }
 
@@ -143,7 +153,12 @@
         .category-filter { width: 180px; }
 
         .table-wrap { width: 100%; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
 
         th, td {
             padding: 14px 11px;
@@ -168,6 +183,25 @@
             font-size: 12px;
         }
 
+        .download-button, .share-button {
+            display: inline-block;
+            margin: 2px;
+            padding: 8px 12px;
+            border: 0;
+            border-radius: 7px;
+            background: #3459d5;
+            color: white;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .download-button:hover, .share-button:hover {
+            background: #2647b5;
+        }
+
         #emptyState {
             padding: 25px 10px;
             color: #667085;
@@ -176,8 +210,8 @@
 
         .upload-panel { display: none; }
         .upload-panel.open { display: block; }
-
         .form-group { margin-bottom: 18px; }
+
         .form-group label {
             display: block;
             margin-bottom: 8px;
@@ -185,7 +219,11 @@
             font-weight: 600;
         }
 
-        .form-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+        .form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
 
         .help-text {
             margin-top: 7px;
@@ -205,40 +243,121 @@
         .message-success { color: #176b4c; background: #ecfdf3; }
         .message-info { color: #344a86; background: #eef4ff; }
 
+        /* Admin account overview: statistics only */
+        #adminAccountsPanel { display: none; }
+
+        .account-stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .account-stat {
+            padding: 16px;
+            border: 1px solid #e5e9f2;
+            border-radius: 10px;
+            background: #f8f9fc;
+        }
+
+        .account-stat .stat-number {
+            margin-top: 8px;
+            font-size: 25px;
+        }
+
+        .account-role-counts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 0;
+        }
+
+        .role-count {
+            padding: 8px 12px;
+            border: 1px solid #e0e5ee;
+            border-radius: 20px;
+            background: white;
+            font-size: 13px;
+        }
+
+        .account-message {
+            padding: 12px 0 0;
+            color: #b42318;
+            font-size: 14px;
+        }
+
+        .dialog-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            background: rgba(15, 23, 42, .55);
+        }
+
+        .dialog-backdrop.open { display: flex; }
+
+        .dialog {
+            width: 100%;
+            max-width: 460px;
+            padding: 24px;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, .2);
+        }
+
+        .dialog h2 { margin-bottom: 10px; }
+
+        .dialog-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
         @media (max-width: 800px) {
             .layout { display: block; }
             .sidebar { width: 100%; }
             .main { padding: 17px; }
-            .stats { grid-template-columns: 1fr; }
+            .stats, .account-stats { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 
 <body>
 <div class="layout">
-
     <aside class="sidebar">
         <div class="brand">TrustVault</div>
         <div class="brand-subtitle">Secure Document Management</div>
+
+        <!-- Profile navigation available to every authenticated role -->
+        <a href="/profile" class="nav-link">
+            My Profile
+        </a>
 
         <button type="button" class="nav-link active" data-view="all">
             My Documents
         </button>
 
-        <button type="button" class="nav-link" data-view="shared">
+        <button type="button" class="nav-link" data-view="shared"
+                id="sharedDocumentsLink" style="display:none">
             Shared Documents
         </button>
-        <a
-    href="/admin/users"
-    class="nav-link"
-    id="manageUsersLink"
-    style="display: none; text-decoration: none;">
-    Manage Users
-</a>
+
+        <a href="/admin/users" class="nav-link" id="manageUsersLink"
+           style="display:none">
+            Manage Users
+        </a>
+
+        <a href="/admin/audit-logs" class="nav-link" id="auditLogsLink"
+           style="display:none">
+            Audit Logs
+        </a>
     </aside>
 
     <main class="main">
-
         <header class="topbar">
             <div>
                 <h1 id="dashboardTitle">Document Dashboard</h1>
@@ -259,18 +378,56 @@
                 <div class="stat-label">Documents displayed</div>
                 <div class="stat-number" id="documentCount">0</div>
             </div>
-
             <div class="stat-card">
                 <div class="stat-label">Categories</div>
                 <div class="stat-number" id="categoryCount">0</div>
             </div>
-
             <div class="stat-card">
                 <div class="stat-label">Account role</div>
                 <div class="stat-number" id="roleSummary" style="font-size:21px">
                     Loading...
                 </div>
             </div>
+        </section>
+
+        <!-- Admin account statistics only. No account search or account table. -->
+        <section class="panel" id="adminAccountsPanel">
+            <div class="panel-heading">
+                <div>
+                    <h2>Account Overview</h2>
+                    <div class="muted">
+                        Account totals and role breakdown.
+                    </div>
+                </div>
+                <button type="button" class="secondary-button"
+                        id="refreshAdminAccounts">
+                    Refresh Accounts
+                </button>
+            </div>
+
+            <div class="account-stats">
+                <div class="account-stat">
+                    <div class="stat-label">Total Accounts</div>
+                    <div class="stat-number" id="totalAccounts">0</div>
+                </div>
+                <div class="account-stat">
+                    <div class="stat-label">Active Accounts</div>
+                    <div class="stat-number" id="activeAccounts">0</div>
+                </div>
+                <div class="account-stat">
+                    <div class="stat-label">Inactive Accounts</div>
+                    <div class="stat-number" id="inactiveAccounts">0</div>
+                </div>
+            </div>
+
+            <div class="account-role-counts">
+                <span class="role-count">Admins: <strong id="adminCount">0</strong></span>
+                <span class="role-count">Owners: <strong id="ownerCount">0</strong></span>
+                <span class="role-count">Viewers: <strong id="viewerCount">0</strong></span>
+            </div>
+
+            <div id="adminAccountsMessage" class="account-message"
+                 role="status" aria-live="polite" hidden></div>
         </section>
 
         <section class="panel">
@@ -282,27 +439,19 @@
                     </div>
                 </div>
 
-                <button
-                    type="button"
-                    class="primary-button"
-                    id="openUpload"
-                    style="display:none">
+                <button type="button" class="primary-button" id="openUpload"
+                        style="display:none">
                     + Upload Document
                 </button>
             </div>
 
             <div class="filters">
-                <input
-                    class="field search-field"
-                    id="searchInput"
-                    type="search"
-                    placeholder="Search documents..."
-                    aria-label="Search documents">
+                <input class="field search-field" id="searchInput"
+                       type="search" placeholder="Search documents..."
+                       aria-label="Search documents">
 
-                <select
-                    class="field category-filter"
-                    id="categoryFilter"
-                    aria-label="Filter by category">
+                <select class="field category-filter" id="categoryFilter"
+                        aria-label="Filter by category">
                     <option value="">All categories</option>
                 </select>
 
@@ -319,6 +468,7 @@
                         <th>Category</th>
                         <th>Uploaded</th>
                         <th>Status</th>
+                        <th>Action</th>
                     </tr>
                     </thead>
                     <tbody id="documentTable"></tbody>
@@ -336,34 +486,22 @@
                 </div>
             </div>
 
-            <form
-                id="previewUploadForm"
-                action="/documents/upload"
-                method="post"
-                enctype="multipart/form-data">
-
+            <form id="previewUploadForm" action="/documents/upload"
+                  method="post" enctype="multipart/form-data">
                 <input type="hidden" id="csrfToken" name="_csrf" value="">
                 <input type="hidden" id="categoryInput" name="category" value="">
 
                 <div class="form-group">
                     <label for="fileInput">Choose file</label>
-                    <input
-                        class="field"
-                        id="fileInput"
-                        name="file"
-                        type="file"
-                        required>
+                    <input class="field" id="fileInput" name="file"
+                           type="file" required>
                     <div class="help-text">Maximum file size: 5 MB.</div>
                 </div>
 
                 <div class="form-group">
                     <label for="detectedFormat">Detected format</label>
-                    <input
-                        class="field"
-                        id="detectedFormat"
-                        type="text"
-                        readonly
-                        placeholder="Choose a file first">
+                    <input class="field" id="detectedFormat" type="text"
+                           readonly placeholder="Choose a file first">
                     <div class="help-text" id="formatInfo"></div>
                 </div>
 
@@ -376,17 +514,40 @@
                     </button>
                 </div>
 
-                <div
-                    id="uploadMessage"
-                    class="notice"
-                    role="status"
-                    aria-live="polite"
-                    style="display:none">
-                </div>
+                <div id="uploadMessage" class="notice" role="status"
+                     aria-live="polite" style="display:none"></div>
             </form>
         </section>
-
     </main>
+</div>
+
+<div class="dialog-backdrop" id="shareBackdrop"
+     role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+    <div class="dialog">
+        <h2 id="shareTitle">Share document</h2>
+        <p class="muted" id="shareDocumentName"></p>
+
+        <form id="shareForm">
+            <div class="form-group">
+                <label for="viewerSelect">Choose a Viewer</label>
+                <select class="field" id="viewerSelect" required>
+                    <option value="">Loading Viewers...</option>
+                </select>
+            </div>
+
+            <div id="shareMessage" class="notice" role="status"
+                 aria-live="polite" style="display:none"></div>
+
+            <div class="dialog-actions">
+                <button type="submit" class="primary-button" id="confirmShare">
+                    Share Document
+                </button>
+                <button type="button" class="secondary-button" id="cancelShare">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
@@ -405,15 +566,29 @@ const detectedFormat = document.getElementById("detectedFormat");
 const formatInfo = document.getElementById("formatInfo");
 const categoryInput = document.getElementById("categoryInput");
 
+const shareBackdrop = document.getElementById("shareBackdrop");
+const shareForm = document.getElementById("shareForm");
+const viewerSelect = document.getElementById("viewerSelect");
+const shareMessage = document.getElementById("shareMessage");
+const confirmShareButton = document.getElementById("confirmShare");
+
 let currentUser = null;
 let documents = [];
 let activeView = "all";
 let loadingDocuments = false;
+let sharingDocumentId = null;
+let loadingAdminAccounts = false;
 
 function showMessage(message, type = "info") {
     uploadMessage.textContent = message;
     uploadMessage.className = "notice message-" + type;
     uploadMessage.style.display = message ? "block" : "none";
+}
+
+function showShareMessage(message, type = "info") {
+    shareMessage.textContent = message;
+    shareMessage.className = "notice message-" + type;
+    shareMessage.style.display = message ? "block" : "none";
 }
 
 function getRoleName(user) {
@@ -424,11 +599,123 @@ function getRoleName(user) {
 }
 
 function canUpload() {
-    return Boolean(
-        currentUser &&
-        (currentUser.isOwner === true || currentUser.isAdmin === true)
-    );
+    return Boolean(currentUser &&
+        (currentUser.isOwner === true || currentUser.isAdmin === true));
 }
+
+function canShare() {
+    return Boolean(currentUser && currentUser.isOwner === true);
+}
+
+async function getCsrfToken() {
+    const response = await fetch("/csrf", {
+        credentials: "same-origin",
+        headers: { "Accept": "application/json" },
+        cache: "no-store"
+    });
+
+    if (!response.ok) {
+        throw new Error("Could not obtain the security token.");
+    }
+
+    const data = await response.json();
+
+    if (!data.token) {
+        throw new Error("Security token was missing.");
+    }
+
+    return data.token;
+}
+
+/* Admin-only account statistics. Account usernames are not displayed here. */
+
+function showAdminAccountsError(message) {
+    const messageElement = document.getElementById("adminAccountsMessage");
+    messageElement.textContent = message;
+    messageElement.hidden = false;
+}
+
+async function loadAdminAccounts() {
+    if (!currentUser || currentUser.isAdmin !== true ||
+        loadingAdminAccounts) {
+        return;
+    }
+
+    loadingAdminAccounts = true;
+
+    const refreshButton = document.getElementById("refreshAdminAccounts");
+    refreshButton.disabled = true;
+
+    const messageElement = document.getElementById("adminAccountsMessage");
+    messageElement.hidden = true;
+    messageElement.textContent = "";
+
+    try {
+        const response = await fetch("/api/admin/users", {
+            credentials: "same-origin",
+            headers: { "Accept": "application/json" },
+            cache: "no-store"
+        });
+
+        if (response.status === 401) {
+            window.location.assign("/login");
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error("Account request failed with HTTP " +
+                response.status + ".");
+        }
+
+        const data = await response.json();
+
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        if (!Array.isArray(data.users)) {
+            throw new Error("Unexpected account API response.");
+        }
+
+        const accounts = data.users;
+        const active = accounts.filter(user => user.enabled === true);
+        const inactive = accounts.filter(user => user.enabled !== true);
+
+        document.getElementById("totalAccounts").textContent = accounts.length;
+        document.getElementById("activeAccounts").textContent = active.length;
+        document.getElementById("inactiveAccounts").textContent = inactive.length;
+
+        document.getElementById("adminCount").textContent =
+            accounts.filter(user =>
+                String(user.role || "").toUpperCase() === "ADMIN").length;
+
+        document.getElementById("ownerCount").textContent =
+            accounts.filter(user =>
+                String(user.role || "").toUpperCase() === "OWNER").length;
+
+        document.getElementById("viewerCount").textContent =
+            accounts.filter(user =>
+                String(user.role || "").toUpperCase() === "VIEWER").length;
+    } catch (error) {
+        document.getElementById("totalAccounts").textContent = "—";
+        document.getElementById("activeAccounts").textContent = "—";
+        document.getElementById("inactiveAccounts").textContent = "—";
+        document.getElementById("adminCount").textContent = "—";
+        document.getElementById("ownerCount").textContent = "—";
+        document.getElementById("viewerCount").textContent = "—";
+
+        showAdminAccountsError(
+            "Could not load account statistics: " + error.message
+        );
+        console.error("Admin account statistics error:", error);
+    } finally {
+        loadingAdminAccounts = false;
+        refreshButton.disabled = false;
+    }
+}
+
+document.getElementById("refreshAdminAccounts")
+    .addEventListener("click", loadAdminAccounts);
 
 async function loadCurrentUser() {
     try {
@@ -456,46 +743,62 @@ async function loadCurrentUser() {
         document.getElementById("userRole").textContent = role;
         document.getElementById("roleSummary").textContent = role;
 
-        if (!currentUser.isAdmin &&
-            !currentUser.isOwner &&
+        if (!currentUser.isAdmin && !currentUser.isOwner &&
             !currentUser.isViewer) {
             throw new Error("Your account does not have a recognized role.");
         }
 
+        const sharedDocumentsLink =
+            document.getElementById("sharedDocumentsLink");
+
+        sharedDocumentsLink.style.display =
+            currentUser.isViewer === true ? "block" : "none";
+
+        activeView = "all";
+
+        document.querySelectorAll(".nav-link[data-view]").forEach(item => {
+            item.classList.toggle("active", item.dataset.view === "all");
+        });
+
         if (currentUser.isAdmin) {
-            document.getElementById("dashboardTitle").textContent =
-                "Admin Dashboard";
+            document.getElementById("dashboardTitle").textContent = "Admin Dashboard";
             document.getElementById("dashboardSubtitle").textContent =
-                "Manage Viewer accounts and authorized administration tasks.";
+                "Manage accounts and authorized administration tasks.";
             document.getElementById("documentHeading").textContent =
                 "Authorized Documents";
             document.getElementById("documentHelp").textContent =
-                "Only documents your account is authorized to access should appear.";
+                "Only documents your account is authorized to access appear here.";
+
+            document.getElementById("adminAccountsPanel").style.display = "block";
         } else if (currentUser.isOwner) {
-            document.getElementById("dashboardTitle").textContent =
-                "Owner Dashboard";
+            document.getElementById("dashboardTitle").textContent = "Owner Dashboard";
             document.getElementById("dashboardSubtitle").textContent =
                 "Upload and manage your own documents.";
-            document.getElementById("documentHeading").textContent =
-                "My Documents";
+            document.getElementById("documentHeading").textContent = "My Documents";
             document.getElementById("documentHelp").textContent =
-                "Manage your own documents and their sharing.";
+                "Manage your own documents and share them with Viewers.";
+
+            document.getElementById("adminAccountsPanel").style.display = "none";
         } else {
-            document.getElementById("dashboardTitle").textContent =
-                "Viewer Dashboard";
+            document.getElementById("dashboardTitle").textContent = "Viewer Dashboard";
             document.getElementById("dashboardSubtitle").textContent =
                 "View documents that have been shared with you.";
-            document.getElementById("documentHeading").textContent =
-                "Shared With Me";
+            document.getElementById("documentHeading").textContent = "Shared With Me";
             document.getElementById("documentHelp").textContent =
-                "You have read-only access. Uploading is unavailable.";
+                "You have read-only access. Uploading and sharing are unavailable.";
+
+            document.getElementById("adminAccountsPanel").style.display = "none";
         }
 
         uploadButton.style.display = canUpload() ? "inline-block" : "none";
-        const manageUsersLink = document.getElementById("manageUsersLink");
 
-        manageUsersLink.style.display =
-            currentUser.isAdmin === true ? "block" : "none";
+        const isAdmin = currentUser.isAdmin === true;
+
+        document.getElementById("manageUsersLink").style.display =
+            isAdmin ? "block" : "none";
+
+        document.getElementById("auditLogsLink").style.display =
+            isAdmin ? "block" : "none";
 
         if (!canUpload()) {
             uploadPanel.style.display = "none";
@@ -503,11 +806,14 @@ async function loadCurrentUser() {
         }
 
         return true;
-
     } catch (error) {
         currentUser = null;
         uploadButton.style.display = "none";
         uploadPanel.style.display = "none";
+        document.getElementById("sharedDocumentsLink").style.display = "none";
+        document.getElementById("manageUsersLink").style.display = "none";
+        document.getElementById("auditLogsLink").style.display = "none";
+        document.getElementById("adminAccountsPanel").style.display = "none";
 
         document.getElementById("dashboardSubtitle").textContent =
             "Unable to verify your account.";
@@ -516,31 +822,20 @@ async function loadCurrentUser() {
         emptyState.textContent =
             "Could not verify your role. Refresh the page or sign in again.";
         emptyState.style.display = "block";
-
         return false;
     }
 }
 
 function detectFormat(fileName) {
     const extension = fileName.includes(".")
-        ? fileName.split(".").pop().toLowerCase()
-        : "";
+        ? fileName.split(".").pop().toLowerCase() : "";
 
     const formats = {
-        pdf: "PDF",
-        doc: "Word Document",
-        docx: "Word Document",
-        xls: "Excel Spreadsheet",
-        xlsx: "Excel Spreadsheet",
-        csv: "Excel Spreadsheet",
-        ppt: "PowerPoint",
-        pptx: "PowerPoint",
-        jpg: "Image",
-        jpeg: "Image",
-        png: "Image",
-        gif: "Image",
-        webp: "Image",
-        txt: "Text Document"
+        pdf: "PDF", doc: "Word Document", docx: "Word Document",
+        xls: "Excel Spreadsheet", xlsx: "Excel Spreadsheet",
+        csv: "Excel Spreadsheet", ppt: "PowerPoint", pptx: "PowerPoint",
+        jpg: "Image", jpeg: "Image", png: "Image", gif: "Image",
+        webp: "Image", txt: "Text Document"
     };
 
     return formats[extension] || "Other";
@@ -552,16 +847,14 @@ function getDocumentName(doc) {
 
 function getDocumentDate(doc) {
     return doc.uploadedAt || doc.uploaded || doc.createdAt ||
-           doc.uploadDate || doc.createdDate || null;
+        doc.uploadDate || doc.createdDate || null;
 }
 
 function formatDate(value) {
     if (!value) return "—";
-
     const date = new Date(value);
     return Number.isNaN(date.getTime())
-        ? String(value)
-        : date.toLocaleString();
+        ? String(value) : date.toLocaleString();
 }
 
 function renderCategories() {
@@ -584,12 +877,9 @@ function renderCategories() {
         categoryFilter.appendChild(option);
     });
 
-    if (categories.includes(previous)) {
-        categoryFilter.value = previous;
-    }
+    if (categories.includes(previous)) categoryFilter.value = previous;
 
-    document.getElementById("categoryCount").textContent =
-        categories.length;
+    document.getElementById("categoryCount").textContent = categories.length;
 }
 
 function renderDocuments() {
@@ -599,12 +889,12 @@ function renderDocuments() {
     const filtered = documents.filter(doc => {
         const name = getDocumentName(doc).toLowerCase();
         const format = String(doc.category || "").toLowerCase();
-
         const matchesSearch = name.includes(query) || format.includes(query);
         const matchesCategory = !category || doc.category === category;
-
         const status = String(doc.status || "").toLowerCase();
-        const matchesView = activeView !== "shared" || status === "shared";
+
+        const matchesView = activeView !== "shared" ||
+            (currentUser && currentUser.isViewer === true && status === "shared");
 
         return matchesSearch && matchesCategory && matchesView;
     });
@@ -613,9 +903,8 @@ function renderDocuments() {
 
     filtered.forEach(doc => {
         const row = document.createElement("tr");
-
-        const nameCell = document.createElement("td");
         const documentName = getDocumentName(doc);
+        const nameCell = document.createElement("td");
 
         const hasDuplicateName = documents.some(item =>
             item.id !== doc.id &&
@@ -623,8 +912,7 @@ function renderDocuments() {
         );
 
         nameCell.textContent = hasDuplicateName
-            ? `${documentName} (ID: ${doc.id})`
-            : documentName;
+            ? `${documentName} (ID: ${doc.id})` : documentName;
 
         const categoryCell = document.createElement("td");
         const tag = document.createElement("span");
@@ -638,12 +926,40 @@ function renderDocuments() {
         const statusCell = document.createElement("td");
         statusCell.textContent = doc.status || "Private";
 
-        row.append(nameCell, categoryCell, dateCell, statusCell);
+        const actionCell = document.createElement("td");
+
+        if (doc.id !== undefined && doc.id !== null &&
+            doc.canDownload === false) {
+            actionCell.textContent = "View only";
+        } else if (doc.id !== undefined && doc.id !== null) {
+            const downloadLink = document.createElement("a");
+            downloadLink.className = "download-button";
+            downloadLink.textContent = "Download";
+            downloadLink.href =
+                "/documents/" + encodeURIComponent(doc.id) + "/download";
+            downloadLink.setAttribute("aria-label", "Download " + documentName);
+            actionCell.appendChild(downloadLink);
+
+            if (canShare() && activeView !== "shared" &&
+                String(doc.status || "").toLowerCase() !== "shared") {
+                const shareButton = document.createElement("button");
+                shareButton.type = "button";
+                shareButton.className = "share-button";
+                shareButton.textContent = "Share";
+                shareButton.addEventListener("click", () => {
+                    openShareDialog(doc.id, documentName);
+                });
+                actionCell.appendChild(shareButton);
+            }
+        } else {
+            actionCell.textContent = "Unavailable";
+        }
+
+        row.append(nameCell, categoryCell, dateCell, statusCell, actionCell);
         documentTable.appendChild(row);
     });
 
     document.getElementById("documentCount").textContent = filtered.length;
-
     document.querySelector(".table-wrap").style.display =
         filtered.length ? "block" : "none";
 
@@ -655,7 +971,6 @@ function renderDocuments() {
 
 async function loadDocuments() {
     if (loadingDocuments) return;
-
     loadingDocuments = true;
 
     try {
@@ -675,35 +990,160 @@ async function loadDocuments() {
         }
 
         const data = await response.json();
-
         if (!Array.isArray(data)) {
             throw new Error("Unexpected document API response.");
         }
-        documents = data;
 
-        console.table(data.map(doc => ({
-            id: doc.id,
-            name: getDocumentName(doc),
-            ownerId: doc.ownerId ?? doc.owner_id,
-            category: doc.category
-        })));
-        console.log("TrustVault document data:", data);
+        documents = data;
         renderCategories();
         renderDocuments();
     } catch (error) {
         documents = [];
         renderCategories();
         renderDocuments();
-
-        emptyState.textContent =
-            "Could not load documents: " + error.message;
+        emptyState.textContent = "Could not load documents: " + error.message;
         emptyState.style.display = "block";
         console.error("Document loading error:", error);
-
     } finally {
         loadingDocuments = false;
     }
 }
+
+async function openShareDialog(documentId, documentName) {
+    if (!canShare()) {
+        alert("Only Owners can share documents.");
+        return;
+    }
+
+    sharingDocumentId = documentId;
+    document.getElementById("shareDocumentName").textContent =
+        "Document: " + documentName;
+    viewerSelect.replaceChildren();
+
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Loading Viewers...";
+    viewerSelect.appendChild(placeholder);
+
+    showShareMessage("");
+    confirmShareButton.disabled = true;
+    confirmShareButton.textContent = "Share Document";
+    shareBackdrop.classList.add("open");
+
+    try {
+        const response = await fetch("/api/viewers", {
+            credentials: "same-origin",
+            headers: { "Accept": "application/json" },
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            throw new Error(response.status === 403
+                ? "Your account is not allowed to share documents."
+                : "Could not load Viewer accounts (HTTP " + response.status + ").");
+        }
+
+        const viewers = await response.json();
+        viewerSelect.replaceChildren();
+
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = viewers.length
+            ? "Choose a Viewer" : "No active Viewers available";
+        viewerSelect.appendChild(option);
+
+        viewers.forEach(viewer => {
+            const viewerOption = document.createElement("option");
+            viewerOption.value = viewer.username;
+            viewerOption.textContent = viewer.username;
+            viewerSelect.appendChild(viewerOption);
+        });
+
+        confirmShareButton.disabled = viewers.length === 0;
+    } catch (error) {
+        showShareMessage(error.message, "error");
+    }
+}
+
+function closeShareDialog() {
+    shareBackdrop.classList.remove("open");
+    sharingDocumentId = null;
+    shareForm.reset();
+    showShareMessage("");
+    confirmShareButton.disabled = false;
+    confirmShareButton.textContent = "Share Document";
+}
+
+document.getElementById("cancelShare").addEventListener("click", closeShareDialog);
+
+shareBackdrop.addEventListener("click", event => {
+    if (event.target === shareBackdrop) closeShareDialog();
+});
+
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && shareBackdrop.classList.contains("open")) {
+        closeShareDialog();
+    }
+});
+
+shareForm.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    if (!canShare() || sharingDocumentId === null) {
+        showShareMessage("You are not allowed to share this document.", "error");
+        return;
+    }
+
+    const viewerUsername = viewerSelect.value;
+    if (!viewerUsername) {
+        showShareMessage("Please choose a Viewer.", "error");
+        return;
+    }
+
+    confirmShareButton.disabled = true;
+
+    try {
+        const csrfToken = await getCsrfToken();
+        const body = new URLSearchParams();
+        body.set("viewerUsername", viewerUsername);
+        body.set("_csrf", csrfToken);
+
+        const response = await fetch(
+            "/api/documents/" + encodeURIComponent(sharingDocumentId) + "/share",
+            {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+                    "Accept": "application/json"
+                },
+                body: body.toString()
+            }
+        );
+
+        let result = {};
+        try {
+            result = await response.json();
+        } catch (_) {
+            // Server may return a non-JSON error response.
+        }
+
+        if (!response.ok) {
+            throw new Error(result.message ||
+                (response.status === 403
+                    ? "Sharing denied. Check your permissions and security token."
+                    : "Sharing failed with HTTP " + response.status + "."));
+        }
+
+        showShareMessage(result.message || "Document shared successfully.", "success");
+        await loadDocuments();
+        confirmShareButton.textContent = "Shared";
+    } catch (error) {
+        showShareMessage(error.message || "Could not share the document.", "error");
+    } finally {
+        confirmShareButton.disabled = false;
+    }
+});
 
 fileInput.addEventListener("change", () => {
     const file = fileInput.files[0];
@@ -718,12 +1158,9 @@ fileInput.addEventListener("change", () => {
     const format = detectFormat(file.name);
     detectedFormat.value = format;
     categoryInput.value = format;
-
-    formatInfo.textContent =
-        "Selected: " + file.name +
+    formatInfo.textContent = "Selected: " + file.name +
         " | Format: " + format +
         " | Size: " + (file.size / 1024).toFixed(1) + " KB";
-
     showMessage("");
 });
 
@@ -734,11 +1171,13 @@ uploadButton.addEventListener("click", () => {
     }
 
     uploadPanel.style.display = "block";
+    uploadPanel.classList.add("open");
     uploadPanel.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 document.getElementById("cancelUpload").addEventListener("click", () => {
     uploadPanel.style.display = "none";
+    uploadPanel.classList.remove("open");
     uploadForm.reset();
     detectedFormat.value = "";
     categoryInput.value = "";
@@ -755,9 +1194,14 @@ document.getElementById("clearFilters").addEventListener("click", () => {
 searchInput.addEventListener("input", renderDocuments);
 categoryFilter.addEventListener("change", renderDocuments);
 
-document.querySelectorAll(".nav-link").forEach(button => {
+document.querySelectorAll(".nav-link[data-view]").forEach(button => {
     button.addEventListener("click", () => {
-        document.querySelectorAll(".nav-link").forEach(item => {
+        if (button.dataset.view === "shared" &&
+            (!currentUser || currentUser.isViewer !== true)) {
+            return;
+        }
+
+        document.querySelectorAll(".nav-link[data-view]").forEach(item => {
             item.classList.remove("active");
         });
 
@@ -802,24 +1246,8 @@ uploadForm.addEventListener("submit", async event => {
 
     try {
         showMessage("Getting security token...");
-
-        const csrfResponse = await fetch("/csrf", {
-            credentials: "same-origin",
-            headers: { "Accept": "application/json" },
-            cache: "no-store"
-        });
-
-        if (!csrfResponse.ok) {
-            throw new Error("Could not obtain the CSRF token.");
-        }
-
-        const csrfData = await csrfResponse.json();
-
-        if (!csrfData.token) {
-            throw new Error("CSRF token was missing.");
-        }
-
-        document.getElementById("csrfToken").value = csrfData.token;
+        const csrfToken = await getCsrfToken();
+        document.getElementById("csrfToken").value = csrfToken;
         categoryInput.value = detectFormat(file.name);
 
         showMessage("Uploading document...");
@@ -831,15 +1259,12 @@ uploadForm.addEventListener("submit", async event => {
         });
 
         if (!response.ok) {
-            throw new Error(
-                response.status === 403
-                    ? "Upload denied. Check permissions and CSRF token."
-                    : "Upload failed with HTTP " + response.status
-            );
+            throw new Error(response.status === 403
+                ? "Upload denied. Check permissions and CSRF token."
+                : "Upload failed with HTTP " + response.status);
         }
 
-        if (response.redirected &&
-            response.url.includes("/login")) {
+        if (response.redirected && response.url.includes("/login")) {
             window.location.assign(response.url);
             return;
         }
@@ -850,16 +1275,11 @@ uploadForm.addEventListener("submit", async event => {
         formatInfo.textContent = "";
 
         await loadDocuments();
-
-        showMessage(
-            "Upload request completed. Check the document list for your file.",
-            "success"
-        );
-
+        showMessage("Upload request completed. Check the document list for your file.",
+            "success");
     } catch (error) {
         showMessage(error.message || "Upload failed.", "error");
         console.error("Upload error:", error);
-
     } finally {
         button.disabled = false;
     }
@@ -869,6 +1289,10 @@ uploadForm.addEventListener("submit", async event => {
     const verified = await loadCurrentUser();
 
     if (verified) {
+        if (currentUser && currentUser.isAdmin === true) {
+            await loadAdminAccounts();
+        }
+
         await loadDocuments();
     }
 })();

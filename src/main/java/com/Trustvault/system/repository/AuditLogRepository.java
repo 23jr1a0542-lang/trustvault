@@ -11,4 +11,9 @@ public interface AuditLogRepository
         extends JpaRepository<AuditLog, Long> {
 
     List<AuditLog> findAllByOrderByTimestampDesc();
+
+    // Newest first; id breaks ties when two events share a timestamp.
+    List<AuditLog> findAllByOrderByTimestampDescIdDesc();
+
+    List<AuditLog> findTop10ByOrderByTimestampDescIdDesc();
 }

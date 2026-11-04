@@ -29,9 +29,11 @@ import org.springframework.web.server.ResponseStatusException;
 import com.Trustvault.system.Useraccount;
 import com.Trustvault.system.document.Document;
 import com.Trustvault.system.document.DocumentStorageService;
+import com.Trustvault.system.document.Documentpermission;
 import com.Trustvault.system.document.repository.DocumentPermissionRepository;
 import com.Trustvault.system.document.repository.DocumentRepository;
 import com.Trustvault.system.repository.Useraccountrepository;
+import com.Trustvault.system.service.AuditLogService;
 
 @Controller
 public class DocumentController {
@@ -40,17 +42,20 @@ public class DocumentController {
     private final DocumentRepository documentRepository;
     private final Useraccountrepository userRepository;
     private final DocumentPermissionRepository permissionRepository;
+    private final AuditLogService auditLogService;
 
     public DocumentController(
             DocumentStorageService storageService,
             DocumentRepository documentRepository,
             Useraccountrepository userRepository,
-            DocumentPermissionRepository permissionRepository) {
+            DocumentPermissionRepository permissionRepository,
+            AuditLogService auditLogService) {
 
         this.storageService = storageService;
         this.documentRepository = documentRepository;
         this.userRepository = userRepository;
         this.permissionRepository = permissionRepository;
+        this.auditLogService = auditLogService;
     }
 
     @GetMapping("/documents")
@@ -89,8 +94,11 @@ public class DocumentController {
                     </form>
                     """.formatted(escapeHtml(csrfToken.getToken()));
 
-            documents = documentRepository
-                    .findByOwnerUsernameOrderByIdDesc(user.getUsername());
+            documents = "ADMIN".equals(user.getRole())
+                    ? documentRepository.findAllByOrderByIdDesc()
+                    : documentRepository
+                            .findByOwnerUsernameOrderByIdDesc(
+                                    user.getUsername());
 
         } else if ("VIEWER".equals(user.getRole())) {
 
@@ -113,6 +121,8 @@ public class DocumentController {
                     "Your role does not have document access.");
         }
 
+        boolean adminView = "ADMIN".equals(user.getRole());
+
         StringBuilder documentList = new StringBuilder();
         documentList.append("<h2>Saved Documents</h2>");
 
@@ -128,29 +138,54 @@ public class DocumentController {
                         <thead>
                             <tr>
                                 <th>File Name</th>
+                                %s
                                 <th>Category</th>
                                 <th>Uploaded At</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                    """);
+                    """.formatted(adminView ? "<th>Owner</th>" : ""));
 
             for (Document document : documents) {
 
+                // Owner is only loaded eagerly for Admin/Owner lists; do not
+                // touch it for Viewers (lazy proxy, no open session).
+                boolean ownedByCurrentUser = adminView
+                        && document.getOwner() != null
+                        && user.getUsername().equals(
+                                document.getOwner().getUsername());
+
                 documentList.append("<tr><td>")
                         .append(escapeHtml(document.getFileName()))
-                        .append("</td><td>")
+                        .append("</td>");
+
+                if (adminView) {
+                    documentList.append("<td>")
+                            .append(escapeHtml(document.getOwner() == null
+                                    ? ""
+                                    : document.getOwner().getUsername()))
+                            .append("</td>");
+                }
+
+                documentList.append("<td>")
                         .append(escapeHtml(document.getCategory()))
                         .append("</td><td>")
                         .append(escapeHtml(
                                 document.getUploadedAt() == null
                                         ? ""
                                         : document.getUploadedAt().toString()))
-                        .append("</td><td class=\"actions\">")
-                        .append("<a class=\"download-link\" href=\"/documents/")
-                        .append(document.getId())
-                        .append("/download\">Download</a>");
+                        .append("</td><td class=\"actions\">");
+
+                // Admin oversight is read-only for other owners' files.
+                if (!adminView || ownedByCurrentUser) {
+                    documentList.append(
+                            "<a class=\"download-link\" href=\"/documents/")
+                            .append(document.getId())
+                            .append("/download\">Download</a>");
+                } else {
+                    documentList.append("View only");
+                }
 
                 if ("OWNER".equals(user.getRole())
                         && document.getOwner() != null
@@ -446,40 +481,46 @@ public class DocumentController {
      */
     @GetMapping("/api/documents")
     @ResponseBody
-    public List<Map<String, Object>> getApiDocuments(Principal principal) {
+    public ResponseEntity<List<Map<String, Object>>> getApiDocuments(
+            Principal principal) {
 
-        Useraccount user = userRepository
+        Useraccount currentUser = userRepository
                 .findByUsername(principal.getName())
-                .orElseThrow(() ->
-                        new ResponseStatusException(
-                                HttpStatus.UNAUTHORIZED,
-                                "User not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED, "User not found"));
 
-        String role = user.getRole();
         List<Document> documents;
 
-        if ("OWNER".equals(role) || "ADMIN".equals(role)) {
+        boolean isAdminUser = "ADMIN".equals(currentUser.getRole());
+
+        if (isAdminUser) {
+
+            // Admin oversight: every persisted document.
+            documents = documentRepository.findAllByOrderByIdDesc();
+
+        } else if ("OWNER".equals(currentUser.getRole())) {
 
             documents = documentRepository
-                    .findByOwnerUsernameOrderByIdDesc(user.getUsername());
+                    .findByOwnerUsernameOrderByIdDesc(
+                            currentUser.getUsername());
 
-        } else if ("VIEWER".equals(role)) {
+        } else if ("VIEWER".equals(currentUser.getRole())) {
 
             documents = permissionRepository
-                    .findByViewerUsernameWithDocument(user.getUsername())
+                    .findByViewerUsernameWithDocument(
+                            currentUser.getUsername())
                     .stream()
-                    .map(permission -> permission.getDocument())
+                    .map(Documentpermission::getDocument)
                     .toList();
 
         } else {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "Your role does not have document access");
+            throw new AccessDeniedException(
+                    "Your role does not have document access.");
         }
 
-        boolean isViewer = "VIEWER".equals(role);
+        List<Map<String, Object>> result = new java.util.ArrayList<>();
 
-        return documents.stream().map(document -> {
+        for (Document document : documents) {
             Map<String, Object> item = new LinkedHashMap<>();
 
             item.put("id", document.getId());
@@ -490,11 +531,137 @@ public class DocumentController {
                     document.getUploadedAt() == null
                             ? ""
                             : document.getUploadedAt().toString());
-            item.put("status", isViewer ? "Shared" : "Private");
 
-            return item;
-        }).toList();
+            boolean isShared = "VIEWER".equals(currentUser.getRole());
+
+            if (isAdminUser) {
+                String ownerName = document.getOwner() == null
+                        ? "" : document.getOwner().getUsername();
+                boolean ownDocument =
+                        currentUser.getUsername().equals(ownerName);
+
+                item.put("owner", ownerName);
+                item.put("canDownload", ownDocument);
+                item.put("status",
+                        ownDocument ? "Private" : "Owner: " + ownerName);
+            } else {
+                item.put("status", isShared ? "Shared" : "Private");
+            }
+
+            result.add(item);
+        }
+
+        return ResponseEntity.ok(result);
     }
+@GetMapping("/api/viewers")
+@ResponseBody
+public ResponseEntity<List<Map<String, String>>> getEligibleViewers(
+        Principal principal) {
+
+    Useraccount currentUser = userRepository
+            .findByUsername(principal.getName())
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "User not found"));
+
+    if (!"OWNER".equals(currentUser.getRole())) {
+        throw new AccessDeniedException(
+                "Only document owners can share documents.");
+    }
+
+    List<Map<String, String>> viewers = new java.util.ArrayList<>();
+
+    for (Useraccount user : userRepository.findAll()) {
+        if ("VIEWER".equals(user.getRole()) && user.isEnabled()) {
+            Map<String, String> viewer = new LinkedHashMap<>();
+            viewer.put("username", user.getUsername());
+            viewers.add(viewer);
+        }
+    }
+
+    return ResponseEntity.ok(viewers);
+}
+
+
+@PostMapping("/api/documents/{id}/share")
+@ResponseBody
+public ResponseEntity<Map<String, Object>> shareDocument(
+        @PathVariable Long id,
+        @RequestParam String viewerUsername,
+        Principal principal) {
+
+    Useraccount currentUser = userRepository
+            .findByUsername(principal.getName())
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "User not found"));
+
+    if (!"OWNER".equals(currentUser.getRole())) {
+        auditLogService.log(
+                currentUser.getUsername(),
+                "DOCUMENT_SHARE",
+                "document id=" + id,
+                "Share denied: only owners can share documents",
+                "DENIED");
+        throw new AccessDeniedException(
+                "Only document owners can share documents.");
+    }
+
+    Document document = documentRepository.findWithOwnerById(id)
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Document not found"));
+
+    if (!currentUser.getUsername()
+            .equals(document.getOwner().getUsername())) {
+        auditLogService.log(
+                currentUser.getUsername(),
+                "DOCUMENT_SHARE",
+                AuditLogService.describe(document),
+                "Share denied: document belongs to another owner",
+                "DENIED");
+        throw new AccessDeniedException(
+                "You can share only your own documents.");
+    }
+
+    Useraccount viewer = userRepository
+            .findByUsername(viewerUsername.trim())
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Viewer account not found"));
+
+    if (!"VIEWER".equals(viewer.getRole()) || !viewer.isEnabled()) {
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Select an active Viewer account.");
+    }
+
+    if (permissionRepository.existsByDocumentIdAndViewerUsername(
+            id, viewer.getUsername())) {
+        return sharingResponse(HttpStatus.CONFLICT,
+                "This document is already shared with that Viewer.");
+    }
+
+    Documentpermission permission = new Documentpermission();
+    permission.setDocument(document);
+    permission.setViewer(viewer);
+    permissionRepository.save(permission);
+
+    auditLogService.log(
+            currentUser.getUsername(),
+            "DOCUMENT_SHARE",
+            AuditLogService.describe(document),
+            "Shared with viewer: " + viewer.getUsername(),
+            "SUCCESS");
+
+    return sharingResponse(HttpStatus.OK,
+            "Document shared successfully with " + viewer.getUsername() + ".");
+}
+
+private ResponseEntity<Map<String, Object>> sharingResponse(
+        HttpStatus status, String message) {
+
+    Map<String, Object> response = new LinkedHashMap<>();
+    response.put("message", message);
+
+    return ResponseEntity.status(status).body(response);
+}
 
     @PostMapping("/documents/upload")
     @ResponseBody
@@ -665,15 +832,34 @@ public class DocumentController {
                             safeCategory);
         }
 
-        String storagePath = storageService.store(file);
+        Document saved;
 
-        Document document = new Document();
-        document.setFileName(fileName);
-        document.setCategory(category.trim());
-        document.setOwner(owner);
-        document.setStoragePath(storagePath);
+        try {
+            String storagePath = storageService.store(file);
 
-        documentRepository.save(document);
+            Document document = new Document();
+            document.setFileName(fileName);
+            document.setCategory(category.trim());
+            document.setOwner(owner);
+            document.setStoragePath(storagePath);
+
+            saved = documentRepository.save(document);
+        } catch (Exception ex) {
+            auditLogService.log(
+                    owner.getUsername(),
+                    "DOCUMENT_UPLOAD",
+                    fileName,
+                    "Upload failed",
+                    "FAILURE");
+            throw ex;
+        }
+
+        auditLogService.log(
+                owner.getUsername(),
+                "DOCUMENT_UPLOAD",
+                AuditLogService.describe(saved),
+                "Uploaded document, category: " + saved.getCategory(),
+                "SUCCESS");
 
         return messagePage(
                 "Document uploaded successfully!",
@@ -682,81 +868,86 @@ public class DocumentController {
                 "Back to Documents");
     }
 
+    /*
+     * Downloads are allowed only for the document owner
+     * or a viewer who has been granted permission.
+     */
+    @GetMapping("/documents/{id}/download")
+    @ResponseBody
+    public ResponseEntity<Resource> downloadDocument(
+            @PathVariable Long id,
+            Principal principal) throws IOException {
 
-@GetMapping("/documents/{id}/download")
-public ResponseEntity<Resource> downloadDocument(
-        @PathVariable Long id,
-        Principal principal) throws IOException {
+        Useraccount currentUser = userRepository
+                .findByUsername(principal.getName())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.UNAUTHORIZED,
+                        "User not found"));
 
-    Useraccount currentUser = userRepository
-            .findByUsername(principal.getName())
-            .orElseThrow(() ->
-                    new ResponseStatusException(
-                            HttpStatus.UNAUTHORIZED,
-                            "User not found"));
+        Document document = documentRepository
+                .findWithOwnerById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Document not found"));
 
-    // Load the document together with its owner.
-    Document document = documentRepository.findWithOwnerById(id)
-            .orElseThrow(() ->
-                    new ResponseStatusException(
-                            HttpStatus.NOT_FOUND,
-                            "Document not found"));
+        boolean isOwner = document.getOwner() != null
+                && currentUser.getUsername().equals(
+                        document.getOwner().getUsername());
 
-    boolean isAdminOwner = "ADMIN".equals(currentUser.getRole())
-            && document.getOwner() != null
-            && currentUser.getUsername()
-                    .equals(document.getOwner().getUsername());
+        boolean isAuthorizedViewer =
+                "VIEWER".equals(currentUser.getRole())
+                && permissionRepository
+                        .existsByDocumentIdAndViewerUsername(
+                                id, currentUser.getUsername());
 
-    boolean isOwner = "OWNER".equals(currentUser.getRole())
-            && document.getOwner() != null
-            && currentUser.getUsername()
-                    .equals(document.getOwner().getUsername());
+        if (!isOwner && !isAuthorizedViewer) {
+            auditLogService.log(
+                    currentUser.getUsername(),
+                    "DOCUMENT_DOWNLOAD",
+                    AuditLogService.describe(document),
+                    "Unauthorized download attempt",
+                    "DENIED");
+            throw new AccessDeniedException(
+                    "You are not authorized to download this document.");
+        }
 
-    boolean isAuthorizedViewer =
-            "VIEWER".equals(currentUser.getRole())
-            && permissionRepository
-                    .existsByDocumentIdAndViewerUsername(
-                            id,
-                            currentUser.getUsername());
+        try {
+            Resource resource = storageService.loadAsResource(
+                    document.getStoragePath());
 
-    if (!isAdminOwner && !isOwner && !isAuthorizedViewer) {
-        throw new AccessDeniedException(
-                "You do not have permission to download this document.");
+            auditLogService.log(
+                    currentUser.getUsername(),
+                    "DOCUMENT_DOWNLOAD",
+                    AuditLogService.describe(document),
+                    isOwner ? "Downloaded own document"
+                            : "Downloaded shared document",
+                    "SUCCESS");
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header(
+                            HttpHeaders.CONTENT_DISPOSITION,
+                            ContentDisposition.attachment()
+                                    .filename(
+                                            document.getFileName(),
+                                            StandardCharsets.UTF_8)
+                                    .build()
+                                    .toString())
+                    .body(resource);
+
+        } catch (FileNotFoundException ex) {
+            auditLogService.log(
+                    currentUser.getUsername(),
+                    "DOCUMENT_DOWNLOAD",
+                    AuditLogService.describe(document),
+                    "File missing on server",
+                    "FAILURE");
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Document file not found on server.",
+                    ex);
+        }
     }
-
-    try {
-        Resource resource = storageService
-                .loadAsResource(document.getStoragePath());
-
-        String rawFileName = document.getFileName();
-        String safeFileName =
-                (rawFileName == null || rawFileName.isBlank())
-                        ? "document"
-                        : rawFileName;
-
-        ContentDisposition disposition =
-                ContentDisposition.attachment()
-                        .filename(safeFileName, StandardCharsets.UTF_8)
-                        .build();
-
-        return ResponseEntity.ok()
-                .header(
-                        HttpHeaders.CONTENT_DISPOSITION,
-                        disposition.toString())
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(resource);
-
-    } catch (FileNotFoundException e) {
-        throw new ResponseStatusException(
-                HttpStatus.NOT_FOUND,
-                "Document file not found on server.");
-
-    } catch (SecurityException e) {
-        throw new ResponseStatusException(
-                HttpStatus.FORBIDDEN,
-                "Access to the requested file path is forbidden.");
-    }
-}
 
     private String messagePage(
             String title,
